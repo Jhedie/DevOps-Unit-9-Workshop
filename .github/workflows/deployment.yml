@@ -27,7 +27,7 @@ jobs:
           terraform_wrapper: false # Disable wrapper for cleaner outputs
 
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -migrate-state -input=false
 
       - name: Terraform Validate
         run: terraform validate
