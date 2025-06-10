@@ -6,3 +6,6 @@ out/
 .terraform/
 *.tfstate
 *terraform.*
+
+.DS_Store
+.vscode/
