@@ -7,12 +7,11 @@ terraform {
   }
 
   backend "azurerm" {
-    resource_group_name  = "1-935de698-playground-sandbox"
+    resource_group_name  = "1-4928fdb4-playground-sandbox"
     storage_account_name = "jhediestorage"
-    container_name       = "jhedie-container"
+    container_name       = "jhedie-storage"
     key                  = "prod.terraform.tfstate"
   }
-
 }
 
 resource "random_password" "db_password" {
@@ -27,11 +26,11 @@ resource "random_password" "db_password" {
 provider "azurerm" {
   features {}
   resource_provider_registrations = "none"
-  subscription_id                 = "0cfe2870-d256-4119-b0a3-16293ac11bdc"
+  subscription_id                 = "28e1e42a-4438-4c30-9a5f-7d7b488fd883"
 }
 
 data "azurerm_resource_group" "main" {
-  name = "1-935de698-playground-sandbox"
+  name = "1-4928fdb4-playground-sandbox"
 }
 
 resource "azurerm_service_plan" "main" {
@@ -62,7 +61,6 @@ resource "azurerm_linux_web_app" "main" {
 }
 
 
-
 resource "azurerm_mssql_server" "main" {
   name                         = "jhedie-non-iac-sqlserver"
   resource_group_name          = data.azurerm_resource_group.main.name
@@ -83,5 +81,20 @@ resource "azurerm_mssql_database" "main" {
   lifecycle {
     prevent_destroy = true
   }
-}
 
+  # provisioner "local-exec" {
+  #   command = <<EOT
+  #     #!/bin/bash
+  #     # Install sqlcmd (from https://github.com/microsoft/go-sqlcmd/releases/tag/v1.8.2)
+  #     curl -L https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.2/sqlcmd-linux-amd64.tar.bz2 -o sqlcmd.tar.bz2
+  #     tar xf sqlcmd.tar.bz2 -C .
+
+  #     ./sqlcmd \
+  #       -S ${azurerm_mssql_server.main.fully_qualified_domain_name} \
+  #       -d ${azurerm_mssql_database.main.name} \
+  #       -U dbadmin \
+  #       -P ${random_password.db_password.result} \
+  #       -i db_setup.sql
+  #     EOT
+  #   }
+}
