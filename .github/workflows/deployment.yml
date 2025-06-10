@@ -46,9 +46,10 @@ jobs:
         if: github.ref == 'refs/heads/main' # Only apply on main branch
         run: terraform apply -auto-approve -input=false tfplan
 
-      - name: Upload Terraform Plan (Optional)
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v3
-        with:
-          name: tfplan
-          path: tfplan
+      - name: Clean up
+        if: always() # Always run cleanup
+        run: |
+          terraform workspace select default || terraform workspace new default
+          terraform workspace delete -force $(terraform workspace list | grep -v '*' | xargs) || true
+          rm -f tfplan
+          echo "Cleanup completed."
