@@ -1,38 +1,54 @@
-name: Deployment Pipeline
+name: Terraform Deployment Pipeline
 
 on:
   push:
     branches:
       - main
+  pull_request: # Optional: Run plan on PRs for review
+    branches:
+      - main
 
 jobs:
-  build:
+  terraform:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./terraform # If Terraform files are in a subdirectory
+
     env:
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      TF_CLI_ARGS: "-no-color" # Disable Terraform color output for logs
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4 # Use latest version
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.12.1
+          terraform_version: 1.12.1 # Pin to a specific version
+          terraform_wrapper: false # Disable wrapper for cleaner outputs
 
-      - name: Initialize Terraform
-        run: terraform init
+      - name: Terraform Init
+        run: terraform init -input=false
 
-      - name: Validate Terraform
+      - name: Terraform Validate
         run: terraform validate
 
-      - name: Plan Terraform
-        run: terraform plan -out=tfplan
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan -input=false -detailed-exitcode
+        continue-on-error: true # Allow PRs to see plan failures
 
-      - name: Apply Terraform
-        run: terraform apply -auto-approve tfplan
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' # Only apply on main branch
+        run: terraform apply -auto-approve -input=false tfplan
 
-      - name: Clean up
-        run: rm -f tfplan
+      - name: Upload Terraform Plan (Optional)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfplan
+          path: tfplan
